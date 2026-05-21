@@ -1,0 +1,72 @@
+{
+  "user_id": "u_007",
+  "created_at": "2026-05-18",
+  "last_updated": "2026-05-20",
+
+  "basic_info": {
+    "age": 23,
+    "gender": "female",
+    "education_level": "undergraduate_year4",
+    "major": "computer_science",
+    "institution": "anonymized_university_CN"
+  },
+
+  "stress_context": {
+    "current_phase": "exam_period",
+    "phase_start_date": "2026-05-18",
+    "phase_end_date": "2026-05-28",
+    "exam_count": 4,
+    "days_until_next_exam": 2,
+    "self_reported_academic_pressure": 8,
+    "note": "期末周，4门考试集中在10天内"
+  },
+
+  "baseline_mental_state": {
+    "avg_stress_score_7d": 5.4,
+    "avg_sleep_hours_7d": 6.8,
+    "avg_mood_score_7d": 5.1,
+    "baseline_established_on": "2026-05-18",
+    "baseline_days": 3
+  },
+
+  "sfv_behavior_baseline": {
+    "avg_daily_watch_minutes": 52,
+    "avg_scroll_speed_vph": 18,
+    "avg_videos_per_session": 24,
+    "avg_like_rate": 0.08,
+    "avg_comment_rate": 0.02,
+    "avg_share_rate": 0.01,
+    "peak_usage_hour": 22,
+    "preferred_session_length_minutes": 15,
+    "baseline_days": 3
+  },
+
+  "content_preference": {
+    "top_categories": ["知识/学习", "搞笑/娱乐", "情感/日常"],
+    "avoided_categories": ["炫耀/晒生活", "申请/offer"],
+    "avg_stay_by_category": {
+      "知识/学习": 45,
+      "搞笑/娱乐": 28,
+      "情感/日常": 62,
+      "美食": 20
+    },
+    "sentiment_preference": "neutral_to_positive"
+  },
+
+  "conversation_profile": {
+    "avg_response_length": "short",
+    "response_style": "direct",
+    "engagement_level": "medium",
+    "sensitive_topics": ["家庭关系", "未来规划"],
+    "responsive_topics": ["今日具体视频", "睡眠状态"],
+    "preferred_question_type": "open_ended",
+    "note": "话不多，但问到具体视频内容时会展开说"
+  },
+
+  "research_consent": {
+    "signed": true,
+    "signed_date": "2026-05-17",
+    "data_usage_agreed": ["behavior_logging", "daily_survey", "agent_conversation"],
+    "withdrawal_right_acknowledged": true
+  }
+}

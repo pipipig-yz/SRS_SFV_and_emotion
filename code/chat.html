@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SRS 研究对话助手</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --primary-light: #eef2ff;
+      --green: #22c55e;
+      --amber: #f59e0b;
+      --red: #ef4444;
+      --bg: #f1f5f9;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #0f172a;
+      --muted: #64748b;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+      --r: 12px;
+      --r-sm: 8px;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; overflow: hidden; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ── HEADER ── */
+    .header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 16px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+      z-index: 100;
+      box-shadow: var(--shadow);
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .logo {
+      width: 34px; height: 34px;
+      background: var(--primary);
+      border-radius: 9px;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 17px; flex-shrink: 0;
+    }
+    .header-title { font-size: 15px; font-weight: 600; }
+    .header-sub { font-size: 11px; color: var(--muted); }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+    .icon-btn {
+      width: 34px; height: 34px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      border-radius: var(--r-sm);
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: var(--muted); font-size: 15px;
+      transition: all .15s;
+    }
+    .icon-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+
+    /* ── LAYOUT ── */
+    .layout {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    @media (max-width: 768px) {
+      .header-title { font-size: 14px; }
+    }
+
+    /* ── CHAT AREA ── */
+    .chat-wrap {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      min-width: 0;
+    }
+    .chat-msgs {
+      flex: 1;
+      overflow-y: auto;
+      padding: 20px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      scroll-behavior: smooth;
+    }
+
+    /* Welcome */
+    .welcome {
+      margin: auto;
+      text-align: center;
+      padding: 32px 20px;
+      max-width: 320px;
+      color: var(--muted);
+    }
+    .welcome-icon { font-size: 44px; margin-bottom: 10px; }
+    .welcome-title { font-size: 17px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+    .welcome-text { font-size: 13px; line-height: 1.6; }
+
+    /* Messages */
+    .msg {
+      display: flex;
+      gap: 8px;
+      max-width: 88%;
+      animation: fadeUp .25s ease;
+    }
+    @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .msg.user { flex-direction: row-reverse; align-self: flex-end; }
+    .msg.ai { align-self: flex-start; }
+
+    .av {
+      width: 30px; height: 30px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 12px; font-weight: 700;
+    }
+    .av.ai { background: var(--primary); color: #fff; }
+    .av.user { background: var(--border); color: var(--muted); }
+
+    .msg-body { display: flex; flex-direction: column; }
+    .msg.user .msg-body { align-items: flex-end; }
+
+    .bubble {
+      padding: 10px 14px;
+      border-radius: 18px;
+      font-size: 13.5px;
+      line-height: 1.65;
+      max-width: 100%;
+    }
+    .msg.user .bubble {
+      background: var(--primary);
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+    .msg.ai .bubble {
+      background: var(--surface);
+      color: var(--text);
+      border-bottom-left-radius: 4px;
+      box-shadow: var(--shadow);
+      border: 1px solid var(--border);
+    }
+    /* Markdown inside AI bubble */
+    .msg.ai .bubble p { margin-bottom: 6px; }
+    .msg.ai .bubble p:last-child { margin-bottom: 0; }
+    .msg.ai .bubble ul, .msg.ai .bubble ol { padding-left: 18px; margin-bottom: 6px; }
+    .msg.ai .bubble li { margin-bottom: 2px; }
+    .msg.ai .bubble strong { font-weight: 600; }
+    .msg.ai .bubble em { font-style: italic; }
+
+    .msg-time { font-size: 10.5px; color: var(--muted); margin-top: 3px; padding: 0 2px; }
+
+    /* Typing */
+    .typing { display: flex; align-items: center; gap: 4px; padding: 10px 14px; }
+    .dot { width: 6px; height: 6px; background: var(--muted); border-radius: 50%; animation: bounce 1.3s infinite; }
+    .dot:nth-child(2){animation-delay:.15s} .dot:nth-child(3){animation-delay:.3s}
+    @keyframes bounce{0%,60%,100%{transform:translateY(0)} 30%{transform:translateY(-6px)}}
+
+    /* ── INPUT AREA ── */
+    .input-area {
+      padding: 12px 16px;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      display: flex;
+      gap: 10px;
+      align-items: flex-end;
+    }
+    .input-wrap { flex: 1; }
+    .chat-input {
+      width: 100%;
+      padding: 10px 16px;
+      border: 1.5px solid var(--border);
+      border-radius: 22px;
+      font-size: 13.5px;
+      font-family: inherit;
+      outline: none;
+      resize: none;
+      max-height: 120px;
+      overflow-y: auto;
+      line-height: 1.5;
+      background: var(--bg);
+      color: var(--text);
+      transition: border-color .2s;
+    }
+    .chat-input:focus { border-color: var(--primary); background: #fff; }
+    .chat-input::placeholder { color: #94a3b8; }
+
+    .send-btn {
+      width: 42px; height: 42px;
+      background: var(--primary);
+      border: none; border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all .15s;
+      color: #fff;
+    }
+    .send-btn:hover { background: var(--primary-dark); transform: scale(1.06); }
+    .send-btn:disabled { background: var(--border); cursor: not-allowed; transform: none; }
+    .send-btn svg { width: 17px; height: 17px; }
+    .voice-btn {
+      width: 42px; height: 42px;
+      background: var(--surface);
+      border: 1.5px solid var(--border);
+      border-radius: 50%;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      transition: all .15s;
+      color: var(--muted);
+    }
+    .voice-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-light); }
+    .voice-btn.recording { border-color: var(--red); color: #fff; background: var(--red); animation: micPulse 1.2s infinite; }
+    .voice-btn.processing { color: var(--primary); background: var(--primary-light); cursor: wait; }
+    .voice-btn:disabled { opacity: .65; cursor: not-allowed; }
+    .voice-btn svg { width: 18px; height: 18px; }
+    @keyframes micPulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(239,68,68,.35); }
+      50% { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+    }
+
+    /* ── SETTINGS MODAL ── */
+    .modal-bg {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,.45);
+      z-index: 500;
+      align-items: center; justify-content: center;
+      padding: 20px;
+      backdrop-filter: blur(4px);
+    }
+    .modal-bg.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border-radius: var(--r);
+      width: 100%; max-width: 500px;
+      max-height: 88vh;
+      overflow-y: auto;
+      box-shadow: 0 20px 60px rgba(0,0,0,.2);
+    }
+    .modal-hd {
+      padding: 18px 20px 0;
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-title { font-size: 15px; font-weight: 600; }
+    .close-btn {
+      width: 26px; height: 26px;
+      border: none; background: var(--bg);
+      border-radius: 6px; cursor: pointer;
+      font-size: 14px; color: var(--muted);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .modal-bd { padding: 16px 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+    .fg { display: flex; flex-direction: column; gap: 5px; }
+    .fl { font-size: 12.5px; font-weight: 500; }
+    .fh { font-size: 11.5px; color: var(--muted); }
+    .fi {
+      padding: 9px 11px;
+      border: 1.5px solid var(--border);
+      border-radius: var(--r-sm);
+      font-size: 13px;
+      font-family: monospace;
+      outline: none;
+      transition: border-color .2s;
+      width: 100%;
+    }
+    .fi:focus { border-color: var(--primary); }
+    .fi.normal { font-family: inherit; }
+    .fi.ta {
+      font-family: inherit;
+      resize: vertical;
+      min-height: 110px;
+      line-height: 1.5;
+    }
+    .save-btn {
+      padding: 9px 18px;
+      background: var(--primary); color: #fff;
+      border: none; border-radius: var(--r-sm);
+      font-size: 13.5px; font-weight: 500;
+      cursor: pointer; align-self: flex-end;
+      transition: background .15s;
+    }
+    .save-btn:hover { background: var(--primary-dark); }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  </style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="header">
+  <div class="header-left">
+    <div class="logo">🔬</div>
+    <div>
+      <div class="header-title">SRS 研究对话助手</div>
+      <div class="header-sub">短视频行为与压力关系研究</div>
+    </div>
+  </div>
+  <div class="header-right">
+    <button class="icon-btn" onclick="openSettings()" title="设置">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20" width="16" height="16">
+        <path fill-rule="evenodd" d="M8.34 1.804A1 1 0 019.32 1h1.36a1 1 0 01.98.804l.295 1.473c.497.144.971.342 1.416.587l1.25-.834a1 1 0 011.262.125l.962.962a1 1 0 01.125 1.262l-.834 1.25c.245.445.443.919.587 1.416l1.473.294a1 1 0 01.804.98v1.361a1 1 0 01-.804.98l-1.473.295a6.95 6.95 0 01-.587 1.416l.834 1.25a1 1 0 01-.125 1.262l-.962.962a1 1 0 01-1.262.125l-1.25-.834a6.953 6.953 0 01-1.416.587l-.294 1.473a1 1 0 01-.98.804H9.32a1 1 0 01-.98-.804l-.295-1.473a6.957 6.957 0 01-1.416-.587l-1.25.834a1 1 0 01-1.262-.125l-.962-.962a1 1 0 01-.125-1.262l.834-1.25a6.957 6.957 0 01-.587-1.416l-1.473-.294A1 1 0 011 10.68V9.32a1 1 0 01.804-.98l1.473-.295c.144-.497.342-.971.587-1.416l-.834-1.25a1 1 0 01.125-1.262l.962-.962A1 1 0 015.379 3.03l1.25.834a6.957 6.957 0 011.416-.587l.294-1.473zM13 10a3 3 0 11-6 0 3 3 0 016 0z" clip-rule="evenodd"/>
+      </svg>
+    </button>
+    <button class="icon-btn" onclick="clearChat()" title="清空对话">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20" width="16" height="16">
+        <path fill-rule="evenodd" d="M8.75 1A2.75 2.75 0 006 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 10.23 1.482l.149-.022.841 10.518A2.75 2.75 0 007.596 19h4.807a2.75 2.75 0 002.742-2.53l.841-10.52.149.023a.75.75 0 00.23-1.482A41.03 41.03 0 0014 4.193V3.75A2.75 2.75 0 0011.25 1h-2.5zM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4zM8.58 7.72a.75.75 0 00-1.5.06l.3 7.5a.75.75 0 101.5-.06l-.3-7.5zm4.34.06a.75.75 0 10-1.5-.06l-.3 7.5a.75.75 0 101.5.06l.3-7.5z" clip-rule="evenodd"/>
+      </svg>
+    </button>
+  </div>
+</header>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- CHAT -->
+  <div class="chat-wrap">
+    <div class="chat-msgs" id="chatMsgs">
+      <div class="welcome" id="welcomeEl">
+        <div class="welcome-icon">💬</div>
+        <div class="welcome-title">准备开始对话</div>
+        <div class="welcome-text">
+          研究助手已加载用户档案与今日短视频行为数据。<br>
+          正在初始化对话，请稍候…
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrap">
+        <textarea
+          id="chatInput"
+          class="chat-input"
+          placeholder="输入消息，Enter 发送，Shift+Enter 换行"
+          rows="1"
+          onkeydown="handleKey(event)"
+          oninput="resize(this)"
+        ></textarea>
+      </div>
+      <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceInput()" title="语音输入">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M10 2a3 3 0 00-3 3v4a3 3 0 006 0V5a3 3 0 00-3-3z"/>
+          <path d="M5.5 8.25a.75.75 0 00-1.5 0V9a6 6 0 005.25 5.955V17.5h-2a.75.75 0 000 1.5h5.5a.75.75 0 000-1.5h-2v-2.545A6 6 0 0016 9v-.75a.75.75 0 00-1.5 0V9a4.5 4.5 0 01-9 0v-.75z"/>
+        </svg>
+      </button>
+      <button class="send-btn" id="sendBtn" onclick="send()">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 20 20">
+          <path d="M3.105 2.289a.75.75 0 00-.826.95l1.414 4.925A1.5 1.5 0 005.135 9.25h6.115a.75.75 0 010 1.5H5.135a1.5 1.5 0 00-1.442 1.086l-1.414 4.926a.75.75 0 00.826.95 28.896 28.896 0 0015.293-7.154.75.75 0 000-1.115A28.897 28.897 0 003.105 2.289z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- SETTINGS MODAL -->
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <div class="modal-hd">
+      <span class="modal-title">⚙️ 配置</span>
+      <button class="close-btn" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div class="fg">
+        <label class="fl">系统提示词 (System Prompt)</label>
+        <span class="fh">可使用 <code>{USER_CONTEXT}</code> 占位符，用户档案将自动注入</span>
+        <textarea class="fi ta" id="promptInput" rows="10"></textarea>
+      </div>
+      <div class="fg">
+        <label class="fl">模型</label>
+        <select class="fi normal" id="modelSel">
+          <option value="deepseek-chat">deepseek-chat（推荐）</option>
+          <option value="deepseek-reasoner">deepseek-reasoner</option>
+        </select>
+      </div>
+      <button class="save-btn" onclick="saveSettings()">保存并重启对话</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   CONFIG
+   ============================================================ */
+const DEFAULT_PROMPT = `你是一个研究访谈助手，正在参与一项关于短视频使用习惯与心理压力的研究项目。你的对话对象刚刚结束了一段短视频刷取会话。
+
+请全程用中文与用户对话。
+
+---
+
+【背景数据】
+{USER_CONTEXT}
+
+（此变量包含：用户基本画像、早间压力/焦虑基线评分、今日浏览行为摘要——总观看时长、视频数量、完播率、滑动节奏变化、互动次数——以及今日观看视频列表，含标题、类别和是否完播。）
+
+---
+
+【研究目标】
+你的核心目标是发现用户短视频交互行为与其压力/焦虑状态之间的规律和关联。你不是在提供心理支持或咨询，你是一名研究者，试图理解：一个人刷视频的方式（看什么、怎么刷、如何互动）是否反映了他当下的压力或焦虑水平？
+
+视频内容可以作为对话的自然切入点——聊"看了什么"比直接问"你压力大吗"更自然、更不突兀。但内容只是桥梁，不是终点。你真正关注的始终是交互行为（怎么刷）和心理状态（压力/焦虑水平），而非内容本身。不要在内容分析上停留太久，用它打开话头，然后引导回行为和状态。
+
+不要向用户直接说明这个研究目标，它应该无形地驱动你的提问策略。
+
+---
+
+【对话策略】
+
+**1. 永远从可观察的行为出发，而非心理状态。**
+用行为数据中的一个具体、中性的观察来开场，然后邀请用户自己解读。不要用"你今天感觉怎么样"开场。
+
+好："我看到你今天看了不少【类别】的视频，是特别想看这类内容，还是刷着刷着就出现了？"
+差："你今天刷完视频感觉怎么样？"
+
+**2. 用内容作为桥梁，而不是终点。**
+可以用内容相关的问题暖场、降低用户防御。但在1-2轮内容话题之后，要转向刷视频的体验本身——节奏、冲动、互动背后的状态。
+
+内容入口："今天有没有什么视频让你印象比较深？"
+转向行为："看到喜欢的，你会倾向于停下来多看一会儿，还是看完继续刷？"
+转向状态："今天刷的时候是有目的地在找什么，还是更多是随着推荐走？"
+
+**3. 用开放式、非引导性问题提问。**
+你的问题不能暗示正确答案，也不能暗示行为与压力之间存在因果关系。用户说"我就是随便刷刷"也是完全有效的回答。
+
+好："今天刷视频的感觉是什么样的？"
+差："你今天是不是在用刷视频减压？"
+差："刷了这么久，是不是在逃避什么？"
+
+**4. 不主动建立行为-情绪联系，让用户自己说。**
+当用户主动提到某种感受或情绪时，再轻柔地把它和具体行为联系起来。永远不要抢先建立这个联系。
+
+用户说："我今天感觉有点烦躁。"
+你说："有意思——这种烦躁有没有反映在你刷视频的方式上？比如会不会刷得更快，或者反而对某些视频停得更久？"
+
+**5. 重点关注行为异常信号。**
+如果数据中出现异常模式——总时长异常高/低、滑动速度明显加快、某类内容的集中观看、多次重播同一视频——把这些当作高价值信号，通过提问小心地探测，而不是直接陈述。
+
+好："今天有没有哪个视频你看了不止一遍？"
+好："有没有某个时候想停下来，但还是继续刷了？"
+
+**6. 在对话中追踪两个隐性维度：唤醒度与回避性。**
+不要向用户提及这两个词，但要通过提问逐渐理解：
+- 唤醒度：刷视频时是亢奋/烦躁、还是麻木/平静？
+- 回避性：是在主动寻找什么，还是在用刷视频回避/填充某种状态？
+
+这两个维度直接对应压力和焦虑状态。用户观看的内容类型可能暗示他们的唤醒/回避偏好——把它当线索，而不是结论。
+
+**7. 保持绝对中立，不做价值判断。**
+不要暗示刷很多视频、快速滑动、反复看某类内容是"不好的"或"有问题的"。全程保持中立好奇的研究者姿态。
+
+**8. 适度使用反射性回应。**
+偶尔用用户自己的原话来复述，而不是用你的解读。这会建立信任，帮助用户说出更多细节。
+
+用户："我也没认真看，就是发呆。"
+你："就是那种发呆状态，不是在主动看——明白。这种发呆是你刻意想放空，还是不知不觉就那样了？"
+
+**9. 对话长度与节奏。**
+- 全程控制在6-8轮以内。
+- 第1-2轮：行为观察或内容切入 → 开放邀请。
+- 第3-4轮：用内容做桥梁；引导转向交互行为模式。
+- 第5-6轮：聚焦行为与心理状态的联系——唤醒度、回避性、刷视频时的意图。
+- 第7-8轮：收尾拉远镜头——"今天整体刷下来是什么感觉？" / "今天和平时有什么不一样吗？"
+
+**10. 语气与风格。**
+随意、温暖、充满好奇——像一个真的对用户感兴趣的研究者，而不是在走流程的评估员。短问题比长问题更好。每轮只问一个问题。
+
+---
+
+【硬性规则】
+- 全程用中文与用户交流。
+- 除非用户自己先提，否则不主动出现"压力""焦虑""抑郁""心理健康"等词。
+- 不向用户解释他们的行为"意味着什么"。
+- 每轮只问一个问题。
+- 不给任何建议、指导或情感支持性表述。
+- 内容话题仅作为暖场入口，2轮内必须引导回交互行为和心理状态。
+- 如果用户问这个研究是关于什么的，回答："我们在研究大家日常刷短视频的体验，没有标准答案，你怎么感受就怎么说就好。"`;
+
+const LEGACY_DEFAULT_PROMPT_PREFIX = '你是一位专业的心理健康研究助手';
+
+let cfg = {
+  model: 'deepseek-chat',
+  systemPrompt: DEFAULT_PROMPT,
+};
+
+/* ============================================================
+   MOCK DATA（数据库占位，后续替换为真实数据库查询）
+   ============================================================ */
+const DB = {
+  userId: 'u_007',
+  basicInfo: { age: 23, gender: '女', education: '本科大四 · 计算机专业', institution: '（匿名高校）' },
+  stressCtx: {
+    phase: '期末周',
+    examCount: 4,
+    daysSpan: 10,
+    daysUntilNext: 2,
+    selfReportedPressure: 8,
+    note: '期末周，4 门考试集中在 10 天内',
+  },
+  mentalState: {
+    avgStress7d: 5.4,
+    avgSleep7d: 6.8,
+    avgMood7d: 5.1,
+  },
+  sfvBehavior: {
+    todayMinutes: 68,
+    todayVideos: 31,
+    baseline7d: 52,
+    scrollSpeedVph: 18,
+    likeRate: 0.08,
+    peakHour: '22:30',
+    sessions: [
+      { time: '14:00–14:20', dur: 20, note: '午休结束后' },
+      { time: '19:30–19:43', dur: 13, note: '晚饭后短暂刷' },
+      { time: '22:30–23:15', dur: 45, note: '睡前主要时段' },
+    ],
+  },
+  contentPref: {
+    preferred: ['知识/学习', '搞笑/娱乐', '情感/日常'],
+    avoided: ['炫耀/晒生活', '申请/offer'],
+    avgStay: { '知识/学习': '45s', '搞笑/娱乐': '28s', '情感/日常': '62s' },
+    sentimentPref: '中性偏正向',
+  },
+  recentVideos: [
+    { title: '当我拿假鸡蛋逗爷爷玩', cat: '三农/搞笑', dur: '5:19', at: '23:01' },
+    { title: '考前焦虑怎么缓解？学姐经验分享', cat: '知识/学习', dur: '3:42', at: '22:48' },
+    { title: '深夜一个人在宿舍的感觉', cat: '情感/日常', dur: '2:15', at: '22:35' },
+    { title: '程序员面试被挂经历分享', cat: '职场', dur: '8:20', at: '19:38' },
+    { title: '今天的早餐 vlog', cat: '美食/日常', dur: '1:30', at: '14:05' },
+  ],
+  convHints: {
+    style: '简短直接',
+    responsive: ['今日具体视频', '睡眠状态'],
+    sensitive: ['家庭关系', '未来规划'],
+    note: '话不多，但问到具体视频内容时会展开说',
+  },
+};
+
+function buildContext() {
+  const d = DB;
+  const sessions = d.sfvBehavior.sessions.map(s => `${s.time}（${s.dur}分钟，${s.note}）`).join('；');
+  const videos = d.recentVideos.map((v, i) => {
+    const comments = (v.comments || []).slice(0, 10).map(c => `"${c}"`).join(' ');
+    const meta = v.videoId
+      ? `视频ID：${v.videoId}，播放 ${formatCount(v.playCount)}，点赞 ${formatCount(v.diggCount)}，评论 ${formatCount(v.commentCount)}`
+      : `${v.dur} @${v.at}`;
+    return `  ${i+1}. [${v.cat}]《${v.title}》${v.dur}，${meta}${comments ? `，评论摘要：${comments}` : ''}`;
+  }).join('\n');
+  return `用户 ID：${d.userId}，${d.basicInfo.age} 岁${d.basicInfo.gender}，${d.basicInfo.education}
+
+学业压力背景：
+- 当前处于${d.stressCtx.phase}，${d.stressCtx.examCount}门考试集中在${d.stressCtx.daysSpan}天内
+- 距下次考试：${d.stressCtx.daysUntilNext} 天
+- 自评学业压力：${d.stressCtx.selfReportedPressure}/10
+
+心理状态（近 7 天均值）：
+- 压力得分：${d.mentalState.avgStress7d}/10
+- 睡眠时长：${d.mentalState.avgSleep7d} 小时/天
+- 情绪得分：${d.mentalState.avgMood7d}/10
+
+今日短视频行为：
+- 总观看时长：${d.sfvBehavior.todayMinutes} 分钟（7 天基线 ${d.sfvBehavior.baseline7d} 分钟，今日超出 +${d.sfvBehavior.todayMinutes - d.sfvBehavior.baseline7d} 分钟）
+- 视频数量：${d.sfvBehavior.todayVideos} 个
+- 今日时段：${sessions}
+- 滑动速度：约 ${d.sfvBehavior.scrollSpeedVph} 视频/小时
+
+内容偏好：
+- 偏好类型：${d.contentPref.preferred.join('、')}
+- 回避类型：${d.contentPref.avoided.join('、')}
+- 停留时长：情感/日常 62s > 知识/学习 45s > 搞笑/娱乐 28s
+
+今日观看视频（最近 5 条）：
+${videos}
+
+对话特征：
+- 回答风格${d.convHints.style}；对「${d.convHints.responsive.join('、')}」话题有回应
+- 敏感话题（避免深入）：${d.convHints.sensitive.join('、')}
+- ${d.convHints.note}`.trim();
+}
+
+function formatCount(n) {
+  if (n == null || n === '') return '未知';
+  const num = Number(n);
+  if (!Number.isFinite(num)) return n;
+  if (num >= 10000) return `${(num / 10000).toFixed(num >= 100000 ? 0 : 1)}万`;
+  return String(num);
+}
+
+function genderLabel(gender) {
+  return ({ female: '女', male: '男' })[gender] || gender || '未知';
+}
+
+function educationLabel(level, major) {
+  const levelText = {
+    undergraduate_year4: '本科大四',
+  }[level] || level || '未知学历';
+  const majorText = {
+    computer_science: '计算机专业',
+  }[major] || major || '未知专业';
+  return `${levelText} · ${majorText}`;
+}
+
+function phaseLabel(phase) {
+  return ({ exam_period: '期末周' })[phase] || phase || '未知阶段';
+}
+
+async function fetchJson(url, options) {
+  const res = await fetch(url, options);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || data.message || `${url} 请求失败`);
+  return data;
+}
+
+async function loadUserData() {
+  const userId = sessionStorage.getItem('userId') || DB.userId;
+  try {
+    const [profile, behavior, mental, historyData] = await Promise.all([
+      fetchJson(`/api/user/${encodeURIComponent(userId)}/profile`),
+      fetchJson(`/api/user/${encodeURIComponent(userId)}/behavior?date=today`),
+      fetchJson(`/api/user/${encodeURIComponent(userId)}/mental_state?date=today`),
+      fetchJson(`/api/user/${encodeURIComponent(userId)}/watch_history?date=today`),
+    ]);
+    const batch = await fetchJson('/api/videos/batch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ids: historyData.video_ids || [] }),
+    });
+    applyApiData(profile, behavior, mental, batch.videos || []);
+  } catch (e) {
+    console.warn('Failed to load API context, using local mock data:', e);
+  }
+}
+
+function applyApiData(profile, behavior, mental, videos) {
+  DB.userId = profile.user_id;
+  DB.basicInfo = {
+    age: profile.basic_info.age,
+    gender: genderLabel(profile.basic_info.gender),
+    education: educationLabel(profile.basic_info.education_level, profile.basic_info.major),
+    institution: profile.basic_info.institution,
+  };
+  DB.stressCtx = {
+    phase: phaseLabel(profile.stress_context.current_phase),
+    examCount: profile.stress_context.exam_count,
+    daysSpan: 10,
+    daysUntilNext: profile.stress_context.days_until_next_exam,
+    selfReportedPressure: profile.stress_context.self_reported_academic_pressure,
+    note: profile.stress_context.note,
+  };
+  DB.mentalState = {
+    avgStress7d: mental.avg_stress_score_7d,
+    avgSleep7d: mental.avg_sleep_hours_7d,
+    avgMood7d: mental.avg_mood_score_7d,
+  };
+  DB.sfvBehavior = {
+    todayMinutes: behavior.today_minutes,
+    todayVideos: behavior.today_videos,
+    baseline7d: behavior.baseline_7d_minutes,
+    scrollSpeedVph: behavior.scroll_speed_vph,
+    likeRate: behavior.like_rate,
+    peakHour: behavior.peak_hour,
+    sessions: behavior.sessions || [],
+  };
+  DB.contentPref = {
+    preferred: profile.content_preference.top_categories || [],
+    avoided: profile.content_preference.avoided_categories || [],
+    avgStay: profile.content_preference.avg_stay_by_category || {},
+    sentimentPref: profile.content_preference.sentiment_preference,
+  };
+  DB.recentVideos = videos.slice(0, 5).map(v => ({
+    videoId: v.video_id,
+    title: v.title,
+    cat: v.category,
+    dur: v.duration,
+    at: '今日',
+    playCount: v.play_count,
+    diggCount: v.digg_count,
+    commentCount: v.comment_count,
+    comments: v.comments || [],
+  }));
+  DB.convHints = {
+    style: profile.conversation_profile.response_style,
+    responsive: profile.conversation_profile.responsive_topics || [],
+    sensitive: profile.conversation_profile.sensitive_topics || [],
+    note: profile.conversation_profile.note,
+  };
+}
+
+/* ============================================================
+   STATE
+   ============================================================ */
+let history = [];   // [{role, content}]
+let busy = false;
+let voiceState = {
+  recording: false,
+  processing: false,
+  stream: null,
+  audioCtx: null,
+  source: null,
+  processor: null,
+  chunks: [],
+  sampleRate: 44100,
+};
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  loadCfg();
+  await loadUserData();
+  setTimeout(initChat, 600);
+});
+
+function initChat() {
+  const sys = cfg.systemPrompt.replace('{USER_CONTEXT}', buildContext());
+  history = [{ role: 'system', content: sys }];
+  callAI();
+}
+
+/* ============================================================
+   CHAT
+   ============================================================ */
+async function send() {
+  const el = document.getElementById('chatInput');
+  const txt = el.value.trim();
+  if (!txt || busy) return;
+  el.value = '';
+  resize(el);
+  hideWelcome();
+  addMsg('user', txt);
+  history.push({ role: 'user', content: txt });
+  await callAI();
+}
+
+async function callAI() {
+  busy = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  const tid = showTyping();
+
+  try {
+    const res = await fetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: cfg.model,
+        messages: history,
+        stream: true,
+        temperature: 0.85,
+        max_tokens: 600,
+      }),
+    });
+
+    if (!res.ok) {
+      const errText = await res.text();
+      throw new Error(`HTTP ${res.status}: ${errText}`);
+    }
+
+    removeTyping(tid);
+    hideWelcome();
+    const bubble = addMsg('ai', '');
+
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let full = '';
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const chunk = dec.decode(value, { stream: true });
+      for (const line of chunk.split('\n')) {
+        if (!line.startsWith('data: ')) continue;
+        const raw = line.slice(6).trim();
+        if (raw === '[DONE]') break;
+        try {
+          const delta = JSON.parse(raw)?.choices?.[0]?.delta?.content;
+          if (delta) {
+            full += delta;
+            bubble.innerHTML = marked.parse(full);
+            scrollDown();
+          }
+        } catch {}
+      }
+    }
+
+    if (full) history.push({ role: 'assistant', content: full });
+
+  } catch (e) {
+    removeTyping(tid);
+    hideWelcome();
+    addMsg('ai', `**连接错误**\n\n${e.message}\n\n请检查 API Key 是否正确，或网络是否可用。`);
+  }
+
+  busy = false;
+  document.getElementById('sendBtn').disabled = false;
+  document.getElementById('chatInput').focus();
+}
+
+/* ============================================================
+   VOICE INPUT
+   ============================================================ */
+async function toggleVoiceInput() {
+  if (voiceState.processing) return;
+  if (voiceState.recording) {
+    await stopVoiceInput();
+  } else {
+    await startVoiceInput();
+  }
+}
+
+async function startVoiceInput() {
+  if (!navigator.mediaDevices?.getUserMedia) {
+    alert('当前浏览器不支持麦克风录音。');
+    return;
+  }
+
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        channelCount: 1,
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    });
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioCtx();
+    const source = audioCtx.createMediaStreamSource(stream);
+    const processor = audioCtx.createScriptProcessor(4096, 1, 1);
+
+    voiceState = {
+      recording: true,
+      processing: false,
+      stream,
+      audioCtx,
+      source,
+      processor,
+      chunks: [],
+      sampleRate: audioCtx.sampleRate,
+    };
+
+    processor.onaudioprocess = (event) => {
+      const input = event.inputBuffer.getChannelData(0);
+      voiceState.chunks.push(new Float32Array(input));
+    };
+    source.connect(processor);
+    processor.connect(audioCtx.destination);
+    setVoiceButton('recording', '点击停止录音');
+  } catch (e) {
+    resetVoiceHardware();
+    alert(`无法访问麦克风：${e.message}`);
+  }
+}
+
+async function stopVoiceInput() {
+  const chunks = voiceState.chunks.slice();
+  const inputRate = voiceState.sampleRate;
+  resetVoiceHardware();
+
+  if (!chunks.length) {
+    setVoiceButton('idle', '语音输入');
+    return;
+  }
+
+  setVoiceButton('processing', '正在识别…');
+  voiceState.processing = true;
+
+  try {
+    const wav = encodeWav(chunks, inputRate, 16000);
+    const audioData = await blobToBase64(wav);
+    const res = await fetch('/api/voice/transcribe', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        audio_data: audioData,
+        format: 'wav',
+        codec: 'raw',
+        rate: 16000,
+        bits: 16,
+        channel: 1,
+      }),
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || '语音识别失败');
+    insertTranscript(data.text || '');
+  } catch (e) {
+    alert(`语音识别失败：${e.message}`);
+  } finally {
+    voiceState.processing = false;
+    setVoiceButton('idle', '语音输入');
+  }
+}
+
+function resetVoiceHardware() {
+  try { voiceState.processor?.disconnect(); } catch {}
+  try { voiceState.source?.disconnect(); } catch {}
+  try { voiceState.stream?.getTracks().forEach(track => track.stop()); } catch {}
+  try { voiceState.audioCtx?.close(); } catch {}
+  voiceState.recording = false;
+}
+
+function setVoiceButton(state, title) {
+  const btn = document.getElementById('voiceBtn');
+  btn.classList.toggle('recording', state === 'recording');
+  btn.classList.toggle('processing', state === 'processing');
+  btn.disabled = state === 'processing';
+  btn.title = title;
+}
+
+function insertTranscript(text) {
+  const cleaned = text.trim();
+  if (!cleaned) {
+    alert('没有识别到可用文字。');
+    return;
+  }
+  const el = document.getElementById('chatInput');
+  const prefix = el.value.trim() ? `${el.value.trim()} ` : '';
+  el.value = `${prefix}${cleaned}`;
+  resize(el);
+  el.focus();
+}
+
+function flattenAudio(chunks) {
+  const length = chunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  const result = new Float32Array(length);
+  let offset = 0;
+  chunks.forEach(chunk => {
+    result.set(chunk, offset);
+    offset += chunk.length;
+  });
+  return result;
+}
+
+function downsample(buffer, inputRate, outputRate) {
+  if (inputRate === outputRate) return buffer;
+  const ratio = inputRate / outputRate;
+  const length = Math.round(buffer.length / ratio);
+  const result = new Float32Array(length);
+  for (let i = 0; i < length; i++) {
+    const start = Math.floor(i * ratio);
+    const end = Math.min(Math.floor((i + 1) * ratio), buffer.length);
+    let sum = 0;
+    for (let j = start; j < end; j++) sum += buffer[j];
+    result[i] = sum / Math.max(1, end - start);
+  }
+  return result;
+}
+
+function encodeWav(chunks, inputRate, outputRate) {
+  const samples = downsample(flattenAudio(chunks), inputRate, outputRate);
+  const bytesPerSample = 2;
+  const blockAlign = bytesPerSample;
+  const buffer = new ArrayBuffer(44 + samples.length * bytesPerSample);
+  const view = new DataView(buffer);
+
+  writeAscii(view, 0, 'RIFF');
+  view.setUint32(4, 36 + samples.length * bytesPerSample, true);
+  writeAscii(view, 8, 'WAVE');
+  writeAscii(view, 12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, 1, true);
+  view.setUint32(24, outputRate, true);
+  view.setUint32(28, outputRate * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);
+  writeAscii(view, 36, 'data');
+  view.setUint32(40, samples.length * bytesPerSample, true);
+
+  let offset = 44;
+  for (let i = 0; i < samples.length; i++, offset += 2) {
+    const s = Math.max(-1, Math.min(1, samples[i]));
+    view.setInt16(offset, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+  }
+
+  return new Blob([view], { type: 'audio/wav' });
+}
+
+function writeAscii(view, offset, text) {
+  for (let i = 0; i < text.length; i++) {
+    view.setUint8(offset + i, text.charCodeAt(i));
+  }
+}
+
+async function blobToBase64(blob) {
+  const buffer = await blob.arrayBuffer();
+  const bytes = new Uint8Array(buffer);
+  let binary = '';
+  const chunkSize = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunkSize) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunkSize));
+  }
+  return btoa(binary);
+}
+
+/* ============================================================
+   UI HELPERS
+   ============================================================ */
+function hideWelcome() {
+  const w = document.getElementById('welcomeEl');
+  if (w) w.remove();
+}
+
+function addMsg(role, content) {
+  const c = document.getElementById('chatMsgs');
+  const isUser = role === 'user';
+
+  const wrap = document.createElement('div');
+  wrap.className = `msg ${role}`;
+
+  const av = document.createElement('div');
+  av.className = `av ${isUser ? 'user' : 'ai'}`;
+  av.textContent = isUser ? '你' : '研';
+
+  const body = document.createElement('div');
+  body.className = 'msg-body';
+
+  const bbl = document.createElement('div');
+  bbl.className = 'bubble';
+  if (isUser) {
+    bbl.textContent = content;
+  } else {
+    bbl.innerHTML = content ? marked.parse(content) : '';
+  }
+
+  const ts = document.createElement('div');
+  ts.className = 'msg-time';
+  ts.textContent = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+
+  body.append(bbl, ts);
+  if (isUser) { wrap.append(body, av); } else { wrap.append(av, body); }
+  c.appendChild(wrap);
+  scrollDown();
+  return bbl;
+}
+
+function showTyping() {
+  const id = 'ty' + Date.now();
+  const c = document.getElementById('chatMsgs');
+  const wrap = document.createElement('div');
+  wrap.id = id; wrap.className = 'msg ai';
+  const av = document.createElement('div');
+  av.className = 'av ai'; av.textContent = '研';
+  const bbl = document.createElement('div');
+  bbl.className = 'bubble typing';
+  bbl.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+  wrap.append(av, bbl);
+  c.appendChild(wrap);
+  scrollDown();
+  return id;
+}
+function removeTyping(id) { document.getElementById(id)?.remove(); }
+function scrollDown() {
+  const c = document.getElementById('chatMsgs');
+  c.scrollTop = c.scrollHeight;
+}
+function resize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+function handleKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+}
+
+/* ============================================================
+   SETTINGS
+   ============================================================ */
+function openSettings() {
+  document.getElementById('promptInput').value = cfg.systemPrompt;
+  document.getElementById('modelSel').value = cfg.model;
+  document.getElementById('modal').classList.add('open');
+}
+function closeSettings() { document.getElementById('modal').classList.remove('open'); }
+function saveSettings() {
+  cfg.systemPrompt = document.getElementById('promptInput').value.trim() || DEFAULT_PROMPT;
+  cfg.model = document.getElementById('modelSel').value;
+  localStorage.setItem('srs_cfg', JSON.stringify(cfg));
+  closeSettings();
+
+  // Restart chat
+  document.getElementById('chatMsgs').innerHTML = `
+    <div class="welcome" id="welcomeEl">
+      <div class="welcome-icon">🔄</div>
+      <div class="welcome-title">正在重新初始化…</div>
+      <div class="welcome-text">已应用新配置，AI 正在加载对话上下文。</div>
+    </div>`;
+  history = [];
+  setTimeout(initChat, 500);
+}
+function loadCfg() {
+  try {
+    const s = localStorage.getItem('srs_cfg');
+    if (s) {
+      const saved = JSON.parse(s);
+      // never load apiKey from storage (key lives in server .env only)
+      delete saved.apiKey;
+      if (saved.systemPrompt?.startsWith(LEGACY_DEFAULT_PROMPT_PREFIX)) {
+        delete saved.systemPrompt;
+      }
+      Object.assign(cfg, saved);
+    }
+  } catch {}
+}
+
+function clearChat() {
+  if (!confirm('确认清空对话历史并重新开始？')) return;
+  document.getElementById('chatMsgs').innerHTML = `
+    <div class="welcome" id="welcomeEl">
+      <div class="welcome-icon">💬</div>
+      <div class="welcome-title">准备开始对话</div>
+      <div class="welcome-text">正在初始化对话，请稍候…</div>
+    </div>`;
+  history = [];
+  setTimeout(initChat, 400);
+}
+</script>
+</body>
+</html>

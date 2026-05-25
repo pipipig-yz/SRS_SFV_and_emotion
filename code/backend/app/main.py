@@ -332,6 +332,14 @@ async def user_mental_state(user_id: str, date: str = "today"):
     return mental_state
 
 
+@app.get("/api/user/{user_id}/daily_behavior")
+async def user_daily_behavior(user_id: str, date: str = "today"):
+    daily_behavior = await get_repository().get_user_daily_behavior(user_id, date)
+    if not daily_behavior:
+        return JSONResponse({"error": "User not found"}, status_code=404)
+    return daily_behavior
+
+
 @app.get("/api/user/{user_id}/watch_history", response_model=WatchHistoryResponse)
 async def user_watch_history(user_id: str, date: str = "today"):
     watch_history = await get_repository().get_user_watch_history(user_id, date)
@@ -343,3 +351,9 @@ async def user_watch_history(user_id: str, date: str = "today"):
 @app.post("/api/videos/batch", response_model=VideoBatchResponse)
 async def videos_batch(payload: VideoBatchRequest):
     return await get_repository().get_videos_batch(payload.ids)
+
+
+@app.get("/api/video_info")
+async def video_info(limit: int | None = None):
+    safe_limit = min(max(limit, 1), 100) if limit is not None else None
+    return await get_repository().get_video_info(safe_limit)

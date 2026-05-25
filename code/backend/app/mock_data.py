@@ -14,9 +14,41 @@ def load_user_profile() -> dict:
 
 
 @lru_cache
-def load_douyin_sample() -> dict:
-    with (DATA_ROOT / "douyin_sample.json").open(encoding="utf-8") as f:
+def load_daily_behavior() -> dict:
+    with (DATA_ROOT / "daily_behavior.json").open(encoding="utf-8") as f:
         return json.load(f)
+
+
+@lru_cache
+def load_douyin_sample() -> dict:
+    sample_path = DATA_ROOT / "douyin_sample.json"
+    if not sample_path.exists():
+        return load_video_info()
+    with sample_path.open(encoding="utf-8") as f:
+        return json.load(f)
+
+
+@lru_cache
+def load_video_info() -> dict:
+    with (DATA_ROOT / "video_info.json").open(encoding="utf-8") as f:
+        return json.load(f)
+
+
+@lru_cache
+def load_summarized_video_info() -> list[dict]:
+    with (DATA_ROOT / "summarize_video_info.json").open(encoding="utf-8") as f:
+        return json.load(f)
+
+
+def get_summarized_video_info(limit: int | None = None) -> dict:
+    videos = load_summarized_video_info()
+    included = videos[:limit] if limit else videos
+    return {
+        "source_file": "database_example/summarize_video_info.json",
+        "total_videos": len(videos),
+        "included_videos": len(included),
+        "videos": included,
+    }
 
 
 def normalize_user_id(username: str) -> str:

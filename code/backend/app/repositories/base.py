@@ -20,9 +20,17 @@ class DataRepository(ABC):
         """Return mental-state data for a user and date."""
 
     @abstractmethod
+    async def get_user_daily_behavior(self, user_id: str, date: str) -> dict[str, Any] | None:
+        """Return complete daily behavior data for prompt injection."""
+
+    @abstractmethod
     async def get_user_watch_history(self, user_id: str, date: str) -> dict[str, Any] | None:
         """Return watched video ids for a user and date."""
 
     @abstractmethod
     async def get_videos_batch(self, ids: list[str]) -> dict[str, Any]:
         """Return normalized video details for ids."""
+
+    @abstractmethod
+    async def get_video_info(self, limit: int | None = None) -> dict[str, Any]:
+        """Return summarized video info for prompt injection."""

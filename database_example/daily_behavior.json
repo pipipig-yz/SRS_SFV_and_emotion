@@ -1,0 +1,66 @@
+{
+  "user_id": "u_007",
+  "date": "today",
+  "source": "mock_daily_behavior",
+  "stress_context": {
+    "current_phase": "exam_period",
+    "phase_start_date": "2026-05-18",
+    "phase_end_date": "2026-05-28",
+    "exam_count": 4,
+    "days_until_next_exam": 2,
+    "self_reported_academic_pressure": 8,
+    "note": "期末周，4门考试集中在10天内"
+  },
+  "baseline_mental_state": {
+    "avg_stress_score_7d": 5.4,
+    "avg_sleep_hours_7d": 6.8,
+    "avg_mood_score_7d": 5.1,
+    "baseline_established_on": "2026-05-18",
+    "baseline_days": 3
+  },
+  "sfv_behavior_baseline": {
+    "avg_daily_watch_minutes": 52,
+    "avg_scroll_speed_vph": 18,
+    "avg_videos_per_session": 24,
+    "avg_like_rate": 0.08,
+    "avg_comment_rate": 0.02,
+    "avg_share_rate": 0.01,
+    "peak_usage_hour": 22,
+    "preferred_session_length_minutes": 15,
+    "baseline_days": 3
+  },
+  "daily_sfv_behavior": {
+    "today_minutes": 68,
+    "today_videos": 31,
+    "baseline_7d_minutes": 52,
+    "minutes_delta_vs_baseline": 16,
+    "scroll_speed_vph": 18,
+    "like_rate": 0.08,
+    "comment_rate": 0.02,
+    "share_rate": 0.01,
+    "peak_hour": "22:30",
+    "sessions": [
+      {
+        "time": "14:00-14:20",
+        "dur": 20,
+        "note": "午休结束后"
+      },
+      {
+        "time": "19:30-19:43",
+        "dur": 13,
+        "note": "晚饭后短暂刷"
+      },
+      {
+        "time": "22:30-23:15",
+        "dur": 45,
+        "note": "睡前主要时段"
+      }
+    ]
+  },
+  "daily_mental_state": {
+    "today_self_reported_pressure": 8,
+    "avg_stress_score_7d": 5.4,
+    "avg_sleep_hours_7d": 6.8,
+    "avg_mood_score_7d": 5.1
+  }
+}
